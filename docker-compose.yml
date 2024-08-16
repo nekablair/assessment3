@@ -1,0 +1,123 @@
+# version: '3'
+
+# services:
+#   frontend:
+#     build: ./frontend
+#     dockerfile: Dockerfile_frontend
+#     container_name: frontend
+#     ports:
+#       - "3000:3000"
+#     environment:
+#       - REACT_APP_API_URL=http://backend:3001
+#     depends_on:
+#       - backend
+
+#   backend:
+#     build: ./backend
+#     dockerfile: Dockerfile_backend
+#     container_name: backend
+#     ports:
+#       - "3001:3001"
+#     environment:
+#       - DB_HOST=database
+#       - DB_USER=root
+#       - DB_PASSWORD=rootpassword
+#       - DB_NAME=moviedb
+#     depends_on:
+#       - database
+
+#   database:
+#     image: postgres:14-alpine
+#     container_name: postgres
+#     ports:
+#       - "5432:5432"
+#     environment:
+#       -POSTGRES_USER=postgres
+#       - POSTGRES_PASSWORD=postgres
+#       - POSTGRES_DB=moviedb
+#     volumes:
+#       - db_data:/var/lib/mysql
+#       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+
+# volumes:
+#   db_data:
+
+# # command:
+
+
+# # services:
+# #   db:
+# #     image: postgres:14-alpine
+# #     container_name: postgres
+# #     ports:
+# #       - '5432:5432'
+# #     environment:
+# #       - POSTGRES_USER=postgres
+# #       - POSTGRES_PASSWORD=postgres
+# #       - POSTGRES_DB=disclone_db
+# #     volumes:
+# #       - postgres_data:/var/lib/postgresql/data/
+
+# 
+
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:14-alpine
+    container_name: postgres-db
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data 
+      - ./init_sql_scripts/init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "${DB_PORT}:5432"
+    networks:
+      - assessment3
+
+  backend:
+    build: 
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: backend
+    ports:
+      - "${BACKEND_PORT}:3001"
+    volumes: 
+      - ./backend:/usr/src/app
+      - /usr/src/app/node_modules
+    depends_on:
+      - postgres
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+      BACKEND_PORT: ${BACKEND_PORT}
+    networks:
+      - assessment3
+
+  frontend:
+    build: 
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: frontend
+    ports:
+      - "${FRONTEND_PORT}:3000"
+    volumes:
+      - ./frontend:/usr/src/app
+      - /usr/src/app/node_modules
+    depends_on:
+      - backend
+    environment:
+      REST_API_URL: http://backend:${BACKEND_PORT}/data
+      FRONTEND_PORT: ${FRONTEND_PORT}
+    networks:
+      - assessment3
+
+networks:
+  assessment3:
+    driver: bridge
+    external: true
+
+volumes: 
+  postgres-data: {}
